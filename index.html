@@ -151,17 +151,11 @@
         <div class="section">
             <h3>📊 会议纪要</h3>
             <div id="summary">点击“生成会议纪要”按钮，AI 将分析内容并生成结构化纪要...</div>
-            <button onclick="exportToTxt('summary', '会议纪要.txt')" class="btn btn-green" style="font-size:14px;">
-              🔽 导出纪要为TXT
-            </button>
         </div>
 
         <div class="section">
             <h3>✅ 任务清单</h3>
             <div id="tasks">点击“提取任务”按钮，AI 可提取待办事项...</div>
-            <button onclick="exportToTxt('tasks', '待办任务.txt')" class="btn btn-green" style="font-size:14px;">
-              🔽 导出任务为TXT
-            </button>
         </div>
     </div>
 
@@ -223,7 +217,7 @@
             document.getElementById('status').textContent = "⏹️ 识别已结束（如需继续，请点击开始）";
         };
 
-        // ✅ 调用本地 /api/generate，由 Vercel 代理转发到阿里云
+        // ✅ 修改：调用本地 /api/generate，由 Vercel 代理转发到阿里云
         async function generateSummary() {
             const transcript = document.getElementById('transcript').value.trim();
             if (!transcript) {
@@ -302,37 +296,6 @@
             } catch (error) {
                 tasksDiv.innerHTML = `❌ 提取失败：${error.message}`;
             }
-        }
-
-        // ✅ 新增：导出为 TXT 文件功能
-        function exportToTxt(elementId, filename) {
-            const element = document.getElementById(elementId);
-            
-            // 提取文本内容（兼容 pre 标签）
-            let text = "";
-            if (element.tagName === 'DIV' && element.querySelector('pre')) {
-                text = element.querySelector('pre').innerText;
-            } else {
-                text = element.innerText || element.textContent;
-            }
-
-            // 清理提示性文字
-            text = text.replace(/(❌|🟢|✅|🔽|📌|💡|✨|📊|✅|⚠️|⏹️|🎤).*[\r\n]*/g, '').trim();
-            if (!text || text.includes('点击“生成') || text.includes('AI 正在')) {
-                alert("⚠️ 请先生成内容再导出！");
-                return;
-            }
-
-            // 创建并下载文件
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-
-            alert(`✅ 已导出：${filename}`);
         }
     </script>
 </body>
