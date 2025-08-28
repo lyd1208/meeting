@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   // 2. ⚠️ 填入您的通义千问 API Key（只有这里能看到）
-  const API_KEY = 'sk-你的通义千问API密钥'; // 👈 在这里替换为您的真实 Key
+  const API_KEY = 'sk-54bbf86cafc54f209cfe88cd884d03f0'; // 👈 在这里替换为您的真实 Key
 
   // 3. 设置模型
   const MODEL = 'qwen-turbo'; // 推荐：快、便宜
