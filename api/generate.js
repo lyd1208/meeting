@@ -1,68 +1,63 @@
-/**
- * Vercel Serverless Function - 会议助手 API
- * 支持生成会议纪要和待办事项
- */
+// api/generate.js
+// 这是一个 Serverless 函数，运行在 Vercel 云端
+// 作用：代替前端调用阿里云 API，避免 CORS 跨域问题
+
 export default async function handler(req, res) {
-  // ✅ 设置跨域头（允许前端调用）
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // 1. 接收前端传来的会议内容
+  const { content, type = 'summary' } = req.body;
 
-  // 🔍 处理预检请求（CORS）
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (!content) {
+    return res.status(400).json({ error: '缺少会议内容' });
   }
 
-  // ❌ 只允许 POST 请求
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      error: 'Method not allowed',
-      allowed: 'POST'
-    });
-  }
+  // 2. ⚠️ 填入您的通义千问 API Key（只有这里能看到）
+  const API_KEY = 'sk-你的通义千问API密钥'; // 👈 在这里替换为您的真实 Key
+
+  // 3. 设置模型
+  const MODEL = 'qwen-turbo'; // 推荐：快、便宜
+
+  // 4. 构造提示词（Prompt）
+  const prompt = type === 'summary'
+    ? `请生成简明会议纪要：\n1. 主题：一句话\n2. 决策：每条一行\n3. 任务：任务+负责人\n\n【内容】\n${content}`
+    : `请从以下内容中提取任务：\n格式：任务 | 负责人 | 截止时间\n\n${content}`;
 
   try {
-    // 📥 解析请求体
-    const body = req.body;
-    const content = body?.content?.trim();
-    const type = body?.type;
+    // 5. 调用阿里云 API（服务端请求，无 CORS 限制）
+    const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        input: {
+          messages: [
+            { role: 'user', content: prompt }
+          ]
+        },
+        parameters: {
+          result_format: 'text'
+        }
+      })
+    });
 
-    // ❌ 验证输入
-    if (!content) {
-      return res.status(400).json({
-        error: 'Missing or empty "content" in request body'
-      });
-    }
+    const data = await response.json();
 
-    if (!type || !['summary', 'tasks'].includes(type)) {
-      return res.status(400).json({
-        error: 'Missing or invalid "type". Use "summary" or "tasks"'
-      });
-    }
-
-    // 🧠 模拟 AI 处理（返回结构化结果）
-    let result;
-    if (type === 'summary') {
-      result = `【会议纪要】\n\n主题：${content.substring(0, 30)}...\n\n本次会议围绕项目进度展开讨论，明确了下一阶段目标与分工安排。\n\n关键结论：\n1. 项目周期为6周，9月底交付\n2. 前端由张三负责，后端由李四牵头\n3. 每周五下午3点举行进度同步会`;
+    // 6. 返回结果给前端
+    if (data.output && data.output.text) {
+      res.status(200).json({ text: data.output.text });
     } else {
-      result = `✅ 待办事项清单\n\n1. 完成需求文档终稿撰写\n2. 开发用户登录与权限模块\n3. 联调前后端 API 接口\n4. 编写核心功能测试用例\n5. 准备下周客户演示材料`;
+      res.status(500).json({ error: 'AI 生成失败', details: data });
     }
-
-    // ✅ 返回成功响应
-    return res.status(200).json({
-      text: result,
-      timestamp: new Date().toISOString(),
-      type: type
-    });
-
   } catch (error) {
-    // 🛑 捕获所有异常，防止 CONNECTION_CLOSED
-    console.error('API Handler Error:', error);
-
-    return res.status(500).json({
-      error: 'Internal Server Error',
-      message: error.message || 'Unknown error',
-      timestamp: new Date().toISOString()
-    });
+    res.status(500).json({ error: '请求阿里云失败', message: error.message });
   }
 }
+
+// Vercel 配置
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
