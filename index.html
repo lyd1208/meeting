@@ -284,3 +284,19 @@
                     body: JSON.stringify({
                         content: content,
                         type: 'task'
+                    })
+                });
+
+                const data = await res.json();
+                if (data.text) {
+                    tasksDiv.innerHTML = `<pre>${data.text}</pre>`;
+                } else {
+                    tasksDiv.innerHTML = `❌ 提取失败：${data.error || JSON.stringify(data)}`;
+                }
+            } catch (error) {
+                tasksDiv.innerHTML = `❌ 提取失败：${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
